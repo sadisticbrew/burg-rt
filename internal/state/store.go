@@ -89,6 +89,19 @@ func (s *StateStore) Exists(containerID string) bool {
 	return !os.IsNotExist(err)
 }
 
+func (s *StateStore) ChangeStatus(containerID string, status ContainerState) error {
+	state, err := s.Load(containerID)
+	if err != nil {
+		return err
+	}
+	state.Status = status
+	data, err := json.Marshal(state)
+	if err != nil {
+		return err
+	}
+	return s.AtomicWrite(filepath.Join(s.rootDir, containerID), data)
+}
+
 func (s *StateStore) getStateDir(containerDir string) string {
 	return filepath.Join(containerDir, "state.json")
 }

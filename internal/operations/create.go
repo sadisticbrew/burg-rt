@@ -52,20 +52,23 @@ func Create(opts CreateOptions) error {
 	slog.Info("Successfully parsed config.json")
 
 	slog.Info("Creating state store")
-	state := state.State{
+	st := state.State{
 		Version:     spec.Version,
 		ID:          opts.ID,
 		Status:      state.StateCreating,
 		Bundle:      opts.Bundle,
 		Annotations: opts.Annotations,
 	}
-	err = stateStore.Save(state, opts.ID)
+	err = stateStore.Save(st, opts.ID)
 	if err != nil {
 		return err
 	}
 	slog.Info("Successfully saved state")
 
-	
+	err = stateStore.ChangeStatus(opts.ID, state.StateCreated)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

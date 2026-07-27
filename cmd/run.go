@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"burg/internal/operations"
+	"log/slog"
 
 	"github.com/spf13/cobra"
 )
@@ -11,14 +12,34 @@ var runCmd = &cobra.Command{
 	Short: "Create and start a container",
 	Long: `Create and immediately start a container from an OCI bundle.
 This is a convenience command equivalent to 'burg create' followed by 'burg start'.`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		bundle, _ := cmd.Flags().GetString("bundle")
-		pidFile, _ := cmd.Flags().GetString("pid-file")
-		consoleSocket, _ := cmd.Flags().GetString("console-socket")
-		detach, _ := cmd.Flags().GetBool("detach")
+		bundle, err := cmd.Flags().GetString("bundle")
+		if err != nil {
+			return err
+		}
 
-		return operations.Run(stateRoot, args[0], bundle, detach, pidFile, consoleSocket)
+		opts := operations.CreateOptions{
+			ID:     args[0],
+			Bundle: bundle,
+		}
+
+		if err := operations.Create(opts); err != nil {
+			if err == operations.ErrContainerExists {
+				slog.Info("Container already exists. Starting.")
+			} else {
+				return err
+			}
+		} else {
+			slog.Info("Container created successfully.")
+		}
+
+		if err := operations.Start(opts.Root, opts.ID); err != nil {
+			return err
+		}
+
+		slog.Info("Container started successfully.")
+		return nil
 	},
 }
 
